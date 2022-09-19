@@ -2,6 +2,8 @@
 source functions.sh
 
 echo "I'll check the docker image size for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
+COMPONENT_NAME=`cat /bp/data/environment_build | jq -r .build_detail.repository.name`
+BUILD_REPOSITORY_TAG=`cat /bp/data/environment_build | jq -r .build_detail.repository.tag`
 sleep $SLEEP_DURATION
 dockersize() { docker manifest inspect -v "$1" | jq -c 'if type == "array" then .[] else . end' |  jq -r '[ ( .Descriptor.platform | [ .os, .architecture, .variant, ."os.version" ] | del(..|nulls) | join("/") ), ( [ .SchemaV2Manifest.layers[].size ] | add ) ] | join(" ")' | numfmt --to iec --format '%.2f' --field 2 | column -t ; }
 image_category=`dockersize $COMPONENT_NAME:$BUILD_REPOSITORY_TAG`
