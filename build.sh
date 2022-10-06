@@ -6,7 +6,7 @@ BUILD_REPOSITORY_TAG=`cat /bp/data/environment_build | jq -r .build_detail.repos
 
 echo "I'll check the docker image size for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
 sleep $SLEEP_DURATION
-IMAGE_SIZE=`docker  inspect -f "{{ .Size }}"  registry.buildpiper.in/gatekeeping/dev/dev:27-20220920T0420`
+IMAGE_SIZE=`docker  inspect -f "{{ .Size }}"  ${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}`
 
 if [ $IMAGE_SIZE -gt $MAX_ALLOWED_IMAGE_SIZE ]
 then 
