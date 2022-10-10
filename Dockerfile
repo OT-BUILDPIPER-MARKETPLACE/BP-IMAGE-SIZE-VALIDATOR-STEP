@@ -1,10 +1,14 @@
-FROM dgupta9068/dind_base:1.0
+FROM alpine
 RUN apk add --no-cache --upgrade bash
 RUN apk add jq
+RUN apk add docker-cli
+RUN apk add coreutils
 COPY build.sh .
+RUN chmod +x build.sh
 COPY BP-BASE-SHELL-STEPS/functions.sh .
 ENV SLEEP_DURATION 5s
-ENV IMAGE_SIZE 900
+ENV MAX_ALLOWED_IMAGE_SIZE 180
+ENV VALIDATION_FAILURE_ACTION FAILURE
 ENV COMPONENT_NAME BUILD_REPOSITORY_TAG
 ENV ACTIVITY_SUB_TASK_CODE IMAGE_SIZE_VALIDATOR
 CMD [ "./build.sh" ]
