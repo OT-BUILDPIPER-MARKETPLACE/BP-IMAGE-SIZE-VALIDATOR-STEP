@@ -1,11 +1,10 @@
 #!/bin/bash
 source functions.sh
 
-COMPONENT_NAME=`cat /bp/data/environment_build | jq -r .build_detail.repository.name`
-BUILD_REPOSITORY_TAG=`cat /bp/data/environment_build | jq -r .build_detail.repository.tag`
-
-echo "I'll check the docker image size for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
-sleep $SLEEP_DURATION
+COMPONENT_NAME=`getComponentName`
+BUILD_REPOSITORY_TAG=`getRepositoryTag`
+logInfoMessage "I'll check the docker image layers for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
+sleep  $SLEEP_DURATION
 
 IMAGE_SIZE=`docker image inspect ${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG} --format='{{.Size}}' | numfmt --to=iec | cut -b 1,2,3` 
  
