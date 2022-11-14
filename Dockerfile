@@ -6,6 +6,7 @@ RUN apk add coreutils
 COPY build.sh .
 RUN chmod +x build.sh
 COPY BP-BASE-SHELL-STEPS/functions.sh .
+COPY BP-BASE-SHELL-STEPS/log-functions.sh .
 ENV SLEEP_DURATION 5s
 ENV MAX_ALLOWED_IMAGE_SIZE 180
 ENV VALIDATION_FAILURE_ACTION FAILURE
