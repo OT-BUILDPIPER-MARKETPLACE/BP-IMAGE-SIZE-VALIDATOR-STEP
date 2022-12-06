@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 source functions.sh
 
 COMPONENT_NAME=`getComponentName`
@@ -7,7 +7,7 @@ logInfoMessage "I'll check the docker image layers for ${COMPONENT_NAME} of tag 
 sleep  $SLEEP_DURATION
 
 SIZE=`docker image inspect ${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG} --format='{{.Size}}'`
-IMAGE_SIZE=`expr $size / 1000000`
+IMAGE_SIZE=`expr $SIZE / 1000000`
  
 logInfoMessage "Image size is ${IMAGE_SIZE}MB"
 logInfoMessage "Image size allowed is ${MAX_ALLOWED_IMAGE_SIZE}MB"
