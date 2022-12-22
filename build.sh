@@ -1,5 +1,6 @@
 #!/bin/bash
 source functions.sh
+source log-functions.sh
 
 COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
