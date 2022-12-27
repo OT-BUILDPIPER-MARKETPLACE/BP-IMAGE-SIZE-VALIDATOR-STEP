@@ -1,6 +1,9 @@
 #!/bin/bash
-source functions.sh
-source log-functions.sh
+source aws-functions.sh  
+source file-functions.sh  
+source functions.sh  
+source log-functions.sh  
+source str-functions.sh
 
 COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
