@@ -1,14 +1,29 @@
 #!/bin/bash
-source aws-functions.sh  
-source file-functions.sh  
-source functions.sh  
-source log-functions.sh  
-source str-functions.sh
+
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
+source /opt/buildpiper/shell-functions/str-functions.sh
+source /opt/buildpiper/shell-functions/file-functions.sh
+source /opt/buildpiper/shell-functions/aws-functions.sh
 
 COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
+IMAGE="${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}"
+
 logInfoMessage "I'll check the docker image layers for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
 sleep  $SLEEP_DURATION
+
+
+if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    logInfoMessage " Image found locally: $IMAGE"
+else
+    logWarningMessage "Image not found locally. Pulling $IMAGE"
+    docker pull "$IMAGE"
+    if [[ $? -ne 0 ]]; then
+        logErrorMessage "Failed to pull image: $IMAGE"
+        exit 1
+    fi
+fi
 
 SIZE=`docker image inspect ${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG} --format='{{.Size}}'`
 IMAGE_SIZE=`expr $SIZE / 1000000`
