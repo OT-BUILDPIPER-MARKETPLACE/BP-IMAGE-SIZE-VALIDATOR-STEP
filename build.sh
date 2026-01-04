@@ -5,6 +5,7 @@ source /opt/buildpiper/shell-functions/log-functions.sh
 source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
+source ./login.sh
 
 COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
@@ -15,7 +16,7 @@ sleep  $SLEEP_DURATION
 
 
 if docker image inspect "$IMAGE" >/dev/null 2>&1; then
-    logInfoMessage " Image found locally: $IMAGE"
+    logInfoMessage "Image found locally: $IMAGE"
 else
     logInfoMessage "Logging into configured registries"
     login_all_registries
@@ -40,7 +41,7 @@ then
    if [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
    then
         logErrorMessage "Size of image is more then expected image size"
-        logErrorMessage "build unsucessfull"
+        logErrorMessage "Build unsucessfull"
         exit 1
 
    else
@@ -49,5 +50,5 @@ then
 else
         generateOutput IMAGE_LAYER_VALIDATOR true "Congratulations build succeeded!!!"
         logInfoMessage "Size of a image is under expected image size"
-        logInfoMessage "build sucessfull"
+        logInfoMessage "Build sucessfull"
 fi
