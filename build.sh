@@ -18,9 +18,9 @@ sleep  $SLEEP_DURATION
 if docker image inspect "$IMAGE" >/dev/null 2>&1; then
     logInfoMessage "Image found locally: $IMAGE"
 else
+    logWarningMessage "Image not found locally. Pulling $IMAGE"
     logInfoMessage "Logging into configured registries"
     login_all_registries
-    logWarningMessage "Image not found locally. Pulling $IMAGE"
     docker pull "$IMAGE"
     logInfoMessage "Image successful pull $IMAGE"
     if [[ $? -ne 0 ]]; then
