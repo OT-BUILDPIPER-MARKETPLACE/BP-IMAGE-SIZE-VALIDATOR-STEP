@@ -6,7 +6,6 @@ source /opt/buildpiper/shell-functions/log-functions.sh
 source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
-source /opt/buildpiper/shell-functions/getDataFile.sh
 
 login_all_registries() {
   local JSON_FILE="/bp/data/environment_build"
