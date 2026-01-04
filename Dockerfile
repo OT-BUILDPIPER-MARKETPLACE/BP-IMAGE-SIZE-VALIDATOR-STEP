@@ -15,6 +15,19 @@ RUN addgroup -g 65522 buildpiper && \
 ENV SLEEP_DURATION=5s
 
 
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir \
+        tabulate \
+        cryptography
+
+# Set environment variables to use the virtual environment
+ENV PATH="/opt/venv/bin:$PATH"
+
+ENV DOCKER_CONFIG=/tmp/.docker
+RUN mkdir -p /tmp/.docker && chmod 700 /tmp/.docker
+
+
 RUN mkdir -p \
         /src/reports \
         /bp/data \
@@ -22,7 +35,7 @@ RUN mkdir -p \
         /opt/buildpiper/shell-functions \
         /opt/buildpiper/data \
         /bp/workspace && \
-    chown -R buildpiper:buildpiper /src /bp /opt
+    chown -R buildpiper:buildpiper /src /bp /opt /home/buildpiper/ /tmp/.docker
     
 COPY --chown=buildpiper:buildpiper build.sh /home/buildpiper/build.sh
 
