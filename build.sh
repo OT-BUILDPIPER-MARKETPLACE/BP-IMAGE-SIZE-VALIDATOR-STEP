@@ -11,7 +11,7 @@ COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
 IMAGE="${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}"
 
-logInfoMessage "I'll check the docker image layers for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
+logInfoMessage "I'll check the docker image SIZE for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
 sleep  $SLEEP_DURATION
 
 
@@ -37,7 +37,7 @@ logInfoMessage "Image size allowed is ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
 if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]
 then
-   	generateOutput IMAGE_LAYER_VALIDATOR false "Build failed please check!!!!!"
+   	generateOutput IMAGE_SIZE_VALIDATOR false "Build failed please check!!!!!"
    if [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
    then
         logErrorMessage "Size of image is more then expected image size"
@@ -48,7 +48,7 @@ then
         logWarningMessage "Size of image is more then expected image size please check"
    fi
 else
-        generateOutput IMAGE_LAYER_VALIDATOR true "Congratulations build succeeded!!!"
+        generateOutput IMAGE_SIZE_VALIDATOR true "Congratulations build succeeded!!!"
         logInfoMessage "Size of a image is under expected image size"
         logInfoMessage "Build sucessfull"
 fi
