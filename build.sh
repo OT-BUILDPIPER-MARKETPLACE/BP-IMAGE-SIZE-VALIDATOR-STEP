@@ -7,7 +7,7 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source ./login.sh
 
-debug=true
+export ACTIVITY_SUB_TASK_CODE="image_size_validator"
 
 COMPONENT_NAME=`getComponentName`
 BUILD_REPOSITORY_TAG=`getRepositoryTag`
@@ -55,7 +55,7 @@ logInfoMessage "Image size allowed is ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
 if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]
 then
-    generateOutput IMAGE_SIZE_VALIDATOR false "Build failed please check!!!!!"
+    generateOutput image_size_validator false "Build failed please check!!!!!"
    if [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
    then
         # Event: Blocking Failure
@@ -74,11 +74,20 @@ then
         logWarningMessage "Size of image is more then expected image size please check"
    fi
 else
+        logInfoMessage "into this else block"
         # Event: Success
         add_event "SIZE LIMIT PASSED" "Successful" \
                     "Image size ${IMAGE_SIZE}MB is within limits" \
                     "Limit: ${MAX_ALLOWED_IMAGE_SIZE}MB"
-        generateOutput IMAGE_SIZE_VALIDATOR true "Congratulations build succeeded!!!"
+        generateOutput image_size_validator true "Congratulations build succeeded!!!"
         logInfoMessage "Size of a image is under expected image size"
         logInfoMessage "Build sucessful"
 fi
+
+echo "==== DEBUG EVENT FILES ===="
+ls -l /bp/execution_dir/$EXECUTION_TASK_ID/
+echo "==== FILE CONTENT ===="
+cat /bp/execution_dir/$EXECUTION_TASK_ID/${ACTIVITY_SUB_TASK_CODE}_output.json || echo "File not found"
+
+echo "==== FINAL FILE CONTENT ===="
+cat /bp/execution_dir/$EXECUTION_TASK_ID/image_size_validator_output.json
