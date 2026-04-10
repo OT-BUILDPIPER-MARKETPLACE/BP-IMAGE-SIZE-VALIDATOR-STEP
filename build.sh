@@ -14,9 +14,10 @@ BUILD_REPOSITORY_TAG=`getRepositoryTag`
 IMAGE="${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}"
 
 # Event: Starting the size check process
-add_event "SIZE CHECK START" "Successful" \
-            "Initializing size inspection" \
-            "Target: $IMAGE"
+add_event "IMAGE SIZE VALIDATION STARTED" "Successful" \
+"Image size validation initiated for ${IMAGE}" \
+"Max allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
+
 
 logInfoMessage "I'll check the docker image SIZE for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
 sleep  $SLEEP_DURATION
@@ -39,9 +40,9 @@ else
     if [[ $? -ne 0 ]]; then
         # Event: Pull Failure
         add_event "IMAGE PULL FAILED" "Failed" \
-                    "Failed to pull image: $IMAGE" \
+                    "Failed to pull image ${IMAGE} from registry. Verify authentication, image tag, and network connectivity." \
                     "Check registry login or network"
-        logErrorMessage "Failed to pull image: $IMAGE"
+        logErrorMessage "Failed to pull image ${IMAGE} from registry. Verify authentication, image tag, and network connectivity."
         exit 1
     fi
     logInfoMessage "Image successful pull $IMAGE"
@@ -55,7 +56,7 @@ logInfoMessage "Image size allowed is ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
 if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]
 then
-    generateOutput image_size_validator false "Build failed please check!!!!!"
+    generateOutput image_size_validator false "Image size validation failed. Current size: ${IMAGE_SIZE}MB exceeds allowed limit: ${MAX_ALLOWED_IMAGE_SIZE}MB. Consider optimizing layers or removing unused dependencies."
    if [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
    then
         # Event: Blocking Failure
@@ -76,18 +77,10 @@ then
 else
         logInfoMessage "into this else block"
         # Event: Success
-        add_event "SIZE LIMIT PASSED" "Successful" \
-                    "Image size ${IMAGE_SIZE}MB is within limits" \
-                    "Limit: ${MAX_ALLOWED_IMAGE_SIZE}MB"
-        generateOutput image_size_validator true "Congratulations build succeeded!!!"
+        add_event "IMAGE SIZE VALIDATION PASSED" "Successful" \
+        "Image ${IMAGE} size validated successfully: ${IMAGE_SIZE}MB within allowed limit ${MAX_ALLOWED_IMAGE_SIZE}MB" \
+        "Utilization: $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed size"
+        generateOutput image_size_validator true "Image size validation passed. Build meets defined size constraints."
         logInfoMessage "Size of a image is under expected image size"
         logInfoMessage "Build sucessful"
 fi
-
-echo "==== DEBUG EVENT FILES ===="
-ls -l /bp/execution_dir/$EXECUTION_TASK_ID/
-echo "==== FILE CONTENT ===="
-cat /bp/execution_dir/$EXECUTION_TASK_ID/${ACTIVITY_SUB_TASK_CODE}_output.json || echo "File not found"
-
-echo "==== FINAL FILE CONTENT ===="
-cat /bp/execution_dir/$EXECUTION_TASK_ID/image_size_validator_output.json
