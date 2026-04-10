@@ -15,8 +15,8 @@ IMAGE="${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}"
 
 # Event: Starting the size check process
 add_event "IMAGE SIZE VALIDATION STARTED" "Successful" \
-"Image size validation initiated for ${IMAGE}" \
-"Max allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
+            "Image size validation initiated for ${IMAGE}" \
+            "Max allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
 
 logInfoMessage "I'll check the docker image SIZE for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
@@ -69,7 +69,7 @@ then
 
    else
         # Event: Non-blocking Warning
-        add_event "SIZE LIMIT WARNING" "Warning" \
+        add_event "IMAGE SIZE VALIDATION WARNING" "Warning" \
                     "Image size ${IMAGE_SIZE}MB is over the limit" \
                     "Action: Proceeding per config"
         logWarningMessage "Size of image is more then expected image size please check"
@@ -78,8 +78,8 @@ else
         logInfoMessage "into this else block"
         # Event: Success
         add_event "IMAGE SIZE VALIDATION PASSED" "Successful" \
-        "Image ${IMAGE} size validated successfully: ${IMAGE_SIZE}MB within allowed limit ${MAX_ALLOWED_IMAGE_SIZE}MB" \
-        "Utilization: $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed size"
+                    "Image ${IMAGE} size validated successfully: ${IMAGE_SIZE}MB within allowed limit ${MAX_ALLOWED_IMAGE_SIZE}MB" \
+                    "Utilization: $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed size"
         generateOutput image_size_validator true "Image size validation passed. Build meets defined size constraints."
         logInfoMessage "Size of a image is under expected image size"
         logInfoMessage "Build sucessful"
