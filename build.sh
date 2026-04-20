@@ -18,10 +18,8 @@ add_event "IMAGE SIZE VALIDATION STARTED" "Successful" \
             "Image size validation initiated for ${IMAGE}" \
             "Max allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
-
 logInfoMessage "I'll check the docker image SIZE for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
 sleep  $SLEEP_DURATION
-
 
 if docker image inspect "$IMAGE" >/dev/null 2>&1; then
     logInfoMessage "Image found locally: $IMAGE"
