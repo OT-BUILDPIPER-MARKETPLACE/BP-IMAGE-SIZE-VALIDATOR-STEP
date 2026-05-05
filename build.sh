@@ -7,78 +7,128 @@ source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 source ./login.sh
 
-export ACTIVITY_SUB_TASK_CODE="image_size_validator"
+# ---------------------------------------------------------------
+# NOTE: ACTIVITY_SUB_TASK_CODE is managed by the BuildPiper
+#       environment. Do NOT override it here to ensure events
+#       appear correctly in the UI.
+# ---------------------------------------------------------------
 
-COMPONENT_NAME=`getComponentName`
-BUILD_REPOSITORY_TAG=`getRepositoryTag`
+COMPONENT_NAME=$(getComponentName)
+BUILD_REPOSITORY_TAG=$(getRepositoryTag)
 IMAGE="${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG}"
 
-# Event: Starting the size check process
-add_event "IMAGE SIZE VALIDATION STARTED" "Successful" \
-            "Image size validation initiated for ${IMAGE}" \
-            "Max allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
+# ---------------------------------------------------------------
+# 1. Initialization
+# ---------------------------------------------------------------
+logInfoMessage "> Starting step: image_size_validator"
+logInfoMessage "> Target image : ${IMAGE}"
+logInfoMessage "> Max allowed  : ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
-logInfoMessage "I'll check the docker image SIZE for ${COMPONENT_NAME} of tag ${BUILD_REPOSITORY_TAG}"
-sleep  $SLEEP_DURATION
+add_event "INITIALIZATION" "Successful" \
+    "Image size validation initialized" \
+    "Image: ${IMAGE} | Max allowed: ${MAX_ALLOWED_IMAGE_SIZE}MB"
 
-if docker image inspect "$IMAGE" >/dev/null 2>&1; then
-    logInfoMessage "Image found locally: $IMAGE"
+sleep "$SLEEP_DURATION"
+
+# ---------------------------------------------------------------
+# 2. Image Availability Check
+# ---------------------------------------------------------------
+logInfoMessage "> Checking if image is available locally..."
+
+if docker image inspect "$IMAGE" > /dev/null 2>&1; then
+    logInfoMessage "> Image found locally: ${IMAGE}"
+    add_event "IMAGE_AVAILABILITY" "Successful" \
+        "Image found in local Docker cache" \
+        "Image: ${IMAGE}"
 else
-    logWarningMessage "Image not found locally. Pulling $IMAGE"
-    logInfoMessage "Logging into configured registries"
-    
-    # Event: Pulling from registry
-    add_event "IMAGE PULL INITIATED" "Successful" \
-                "Image not found locally" \
-                "Pulling $IMAGE from registry"
+    logWarningMessage "> Image not found locally. Initiating pull..."
+    logInfoMessage "> Logging into configured registries"
+
+    add_event "IMAGE_PULL_INITIATED" "Successful" \
+        "Image not found locally — pulling from registry" \
+        "Image: ${IMAGE}"
 
     login_all_registries
     docker pull "$IMAGE"
-    
+
     if [[ $? -ne 0 ]]; then
-        # Event: Pull Failure
-        add_event "IMAGE PULL FAILED" "Failed" \
-                    "Failed to pull image ${IMAGE} from registry. Verify authentication, image tag, and network connectivity." \
-                    "Check registry login or network"
-        logErrorMessage "Failed to pull image ${IMAGE} from registry. Verify authentication, image tag, and network connectivity."
+        logErrorMessage "> Failed to pull image ${IMAGE} from registry."
+        add_event "IMAGE_PULL_FAILED" "Failed" \
+            "Could not pull image from registry" \
+            "Image: ${IMAGE} | Verify auth, tag, and network connectivity"
+        saveTaskStatus 1 "${ACTIVITY_SUB_TASK_CODE}"
         exit 1
     fi
-    logInfoMessage "Image successful pull $IMAGE"
+
+    logInfoMessage "> Successfully pulled image: ${IMAGE}"
+    add_event "IMAGE_PULL_COMPLETE" "Successful" \
+        "Image pulled successfully from registry" \
+        "Image: ${IMAGE}"
 fi
 
-SIZE=`docker image inspect ${COMPONENT_NAME}:${BUILD_REPOSITORY_TAG} --format='{{.Size}}'`
-IMAGE_SIZE=`expr $SIZE / 1000000`
- 
-logInfoMessage "Image size is ${IMAGE_SIZE}MB"
-logInfoMessage "Image size allowed is ${MAX_ALLOWED_IMAGE_SIZE}MB"
+# ---------------------------------------------------------------
+# 3. Size Inspection
+# ---------------------------------------------------------------
+logInfoMessage "> Inspecting image size..."
 
-if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]
-then
-    generateOutput image_size_validator false "Image size validation failed. Current size: ${IMAGE_SIZE}MB exceeds allowed limit: ${MAX_ALLOWED_IMAGE_SIZE}MB. Consider optimizing layers or removing unused dependencies."
-   if [ $VALIDATION_FAILURE_ACTION == "FAILURE" ]
-   then
-        # Event: Blocking Failure
-        add_event "SIZE LIMIT EXCEEDED" "Failed" \
-                    "Image size ${IMAGE_SIZE}MB exceeds limit ${MAX_ALLOWED_IMAGE_SIZE}MB" \
-                    "Action: Blocking build"
-        logErrorMessage "Size of image is more then expected image size"
-        logErrorMessage "Build unsucessfull"
+RAW_SIZE=$(docker image inspect "${IMAGE}" --format='{{.Size}}')
+IMAGE_SIZE=$(expr "$RAW_SIZE" / 1000000)
+
+echo ""
+echo "> Image Size Inspection Summary"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+printf '| %-28s | %-48s |\n' "Parameter" "Value"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+printf '| %-28s | %-48s |\n' "Image" "${IMAGE}"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+printf '| %-28s | %-48s |\n' "Actual Size (MB)" "${IMAGE_SIZE}MB"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+printf '| %-28s | %-48s |\n' "Max Allowed Size (MB)" "${MAX_ALLOWED_IMAGE_SIZE}MB"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+printf '| %-28s | %-48s |\n' "Utilization" "$((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of limit"
+printf '+%-30s+%-50s+\n' '------------------------------' '--------------------------------------------------'
+echo ""
+
+logInfoMessage "> Image actual size : ${IMAGE_SIZE}MB"
+logInfoMessage "> Image allowed size: ${MAX_ALLOWED_IMAGE_SIZE}MB"
+logInfoMessage "> Utilization       : $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed limit"
+
+# ---------------------------------------------------------------
+# 4. Validation Result
+# ---------------------------------------------------------------
+if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]; then
+
+    logWarningMessage "> Image size ${IMAGE_SIZE}MB exceeds the configured limit of ${MAX_ALLOWED_IMAGE_SIZE}MB"
+
+    generateOutput image_size_validator false \
+        "Image size validation failed. Current size: ${IMAGE_SIZE}MB exceeds allowed limit: ${MAX_ALLOWED_IMAGE_SIZE}MB. Consider optimizing layers or removing unused dependencies."
+
+    if [ "$VALIDATION_FAILURE_ACTION" == "FAILURE" ]; then
+        logErrorMessage "> Action: Blocking build (VALIDATION_FAILURE_ACTION=FAILURE)"
+        add_event "SIZE_LIMIT_EXCEEDED" "Failed" \
+            "Image size ${IMAGE_SIZE}MB exceeds limit of ${MAX_ALLOWED_IMAGE_SIZE}MB — build blocked" \
+            "Image: ${IMAGE} | Action: FAILURE | Reduce image size to proceed"
+        saveTaskStatus 1 "${ACTIVITY_SUB_TASK_CODE}"
         exit 1
+    else
+        logWarningMessage "> Action: Proceeding with warning (VALIDATION_FAILURE_ACTION=${VALIDATION_FAILURE_ACTION})"
+        add_event "SIZE_LIMIT_EXCEEDED_WARNING" "Warning" \
+            "Image size ${IMAGE_SIZE}MB exceeds limit but build is allowed to continue" \
+            "Image: ${IMAGE} | Action: ${VALIDATION_FAILURE_ACTION} | Review image optimization"
+    fi
 
-   else
-        # Event: Non-blocking Warning
-        add_event "IMAGE SIZE VALIDATION WARNING" "Warning" \
-                    "Image size ${IMAGE_SIZE}MB is over the limit" \
-                    "Action: Proceeding per config"
-        logWarningMessage "Size of image is more then expected image size please check"
-   fi
 else
-        logInfoMessage "into this else block"
-        # Event: Success
-        add_event "IMAGE SIZE VALIDATION PASSED" "Successful" \
-                    "Image ${IMAGE} size validated successfully: ${IMAGE_SIZE}MB within allowed limit ${MAX_ALLOWED_IMAGE_SIZE}MB" \
-                    "Utilization: $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed size"
-        generateOutput image_size_validator true "Image size validation passed. Build meets defined size constraints."
-        logInfoMessage "Size of a image is under expected image size"
-        logInfoMessage "Build sucessful"
+    logInfoMessage "> Validation passed: image size ${IMAGE_SIZE}MB is within the ${MAX_ALLOWED_IMAGE_SIZE}MB limit"
+
+    generateOutput image_size_validator true \
+        "Image size validation passed. Image: ${IMAGE} | Size: ${IMAGE_SIZE}MB | Build meets defined size constraints."
+
+    add_event "IMAGE_SIZE_VALIDATION_PASSED" "Successful" \
+        "Image ${IMAGE} size validated successfully: ${IMAGE_SIZE}MB within limit of ${MAX_ALLOWED_IMAGE_SIZE}MB" \
+        "Utilization: $((IMAGE_SIZE * 100 / MAX_ALLOWED_IMAGE_SIZE))% of allowed size"
+
+    logInfoMessage "> Build successful"
 fi
+
+sleep "$SLEEP_DURATION"
+saveTaskStatus 0 "${ACTIVITY_SUB_TASK_CODE}"
