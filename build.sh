@@ -112,7 +112,7 @@ if [ "${IMAGE_SIZE}" -gt "${MAX_ALLOWED_IMAGE_SIZE}" ]; then
         exit 1
     else
         logWarningMessage "> Action: Proceeding with warning (VALIDATION_FAILURE_ACTION=${VALIDATION_FAILURE_ACTION})"
-        add_event "SIZE_LIMIT_EXCEEDED_WARNING" "Warning" \
+        add_event "SIZE_LIMIT_EXCEEDED_WARNING" "Failed" \
             "Image size ${IMAGE_SIZE}MB exceeds limit but build is allowed to continue" \
             "Image: ${IMAGE} | Action: ${VALIDATION_FAILURE_ACTION} | Review image optimization"
     fi
