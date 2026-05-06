@@ -4,6 +4,7 @@ FROM alpine:3.19
 RUN apk update && apk add --no-cache \
     bash \
     jq \
+    skopeo \
     docker-cli \
     coreutils \
     python3 \
